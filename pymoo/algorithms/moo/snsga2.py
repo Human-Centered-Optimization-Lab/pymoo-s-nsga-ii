@@ -4,9 +4,11 @@ from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.docs import parse_doc_string
 from pymoo.core.survival import Survival
 from pymoo.core.sampling import Sampling
-from pymoo.operators.selection.rnd import RandomSelection
+from pymoo.operators.sampling.rnd import FloatRandomSampling
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from pymoo.util.normalization import get_extreme_points_c
+from pymoo.problems import get_problem
+
 
 import matplotlib.pyplot as plt
 
@@ -172,14 +174,14 @@ class VSSPS(Sampling):
         self.s_upper = sparsity_range[1]
 
 
-    def _do(self, problem, n_samples, **kwargs):
+    def _do(self, problem, n_samples, base_sampler_class, **kwargs):
 
         ## Problem initialization
 
+        base_sampler = base_sampler_class()
+
         # Initial population sampling 
-        X = np.full((n_samples, problem.n_var), 0, dtype=int)
-        for i in range(n_samples):
-            X[i, :] = np.random.permutation(problem.n_var)
+        X = base_sampler._do(problem, n_samples, **kwargs)
 
         N = X.shape[0]
         D = X.shape[1]
@@ -232,7 +234,6 @@ class VSSPS(Sampling):
 
         ## Create density mask
 
-
         # Mask out non-zero values cycle-by-cycle
         currentIndv = 0;
 
@@ -261,25 +262,25 @@ class VSSPS(Sampling):
                 startPoint = position;
 
                 if c == cycle_count:
-                    endPoint = position+width-1;
+                    endPoint = position+width;
                 else:
-                    endPoint = position+width-1+gapWidth;
-                
+                    endPoint = position+width+gapWidth;
 
                 # Prevent overflow from a gap calculation
                 if endPoint > D:
                     endPoint = D;
-                
+
                 # Mask out stripe
                 mask[currentIndv, startPoint:endPoint] = True;
 
                 # Go to the next individual
-                position = position+width+gapWidth;
+                position = endPoint;
 
                 currentIndv = currentIndv + 1;
 
         # Zero out the necessary spots
         X[np.logical_not(mask)] = 0;
+
 
         return X
 
@@ -311,10 +312,11 @@ class VSSPS(Sampling):
 if __name__ == "__main__": 
 
     sampler = VSSPS()
-    dummy_prob = type('obj', (object,), {'n_var' : 100})
-    n_samples = 100
+    dummy_prob = get_problem("zdt1", n_var= 100)
+   
+    n_samples = 100;
 
-    X = sampler._do(dummy_prob, n_samples)
+    X = sampler._do(dummy_prob, n_samples, FloatRandomSampling)
 
     masked_X = X
     masked_X[masked_X != 0] = 1
@@ -322,9 +324,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
     im = ax.imshow(X)
 
-
-
     plt.show()
 
-
+    
 
