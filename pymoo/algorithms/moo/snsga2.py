@@ -168,7 +168,7 @@ class RankAndModifiedCrowdingSurvival(Survival):
 
 class VSSPS(Sampling):
 
-    def __init__(self, sparsity_range = (0.50, 1)): 
+    def __init__(self, sparsity_range = (0.75, 1)): 
 
         self.s_lower = sparsity_range[0]
         self.s_upper = sparsity_range[1]
@@ -190,98 +190,98 @@ class VSSPS(Sampling):
         mask = np.array(np.zeros(np.shape(X)), dtype = bool)
 
         ## Determine the positioning of each stripe per individual
-        densityVector = 1 - np.linspace(self.s_lower, self.s_upper, N);
+        densityVector = 1 - np.linspace(self.s_lower, self.s_upper, N)
 
-        widthVector = np.round(np.multiply(densityVector, D)).astype(int);
+        widthVector = np.round(np.multiply(densityVector, D)).astype(int)
 
 
         # Put widths back into bound if rounding error occurred
-        lb = np.floor((1- self.s_lower)*D);
-        widthVector[widthVector > lb] = lb;
+        lb = np.floor((1- self.s_lower)*D)
+        widthVector[widthVector > lb] = lb
 
-        cumulativeWidths = np.cumsum(widthVector);
+        cumulativeWidths = np.cumsum(widthVector)
         
         # if all sparsities are 100%, then skip processing, since everything
         # will be zeros 
         if np.sum(widthVector == 0) == N:
-            processedIndvs = N; 
+            processedIndvs = N 
         else:
-            processedIndvs = 0;
+            processedIndvs = 0
 
-        cycle_count = 0;
-        cycles = np.ones((N, D), dtype=int) * -1;
+        cycle_count = 0
+        cycles = np.ones((N, D), dtype=int) * -1
 
         while processedIndvs < N:
 
             # Figure out how many stripes will fit in this cycle 
-            spotsThatFitMask = np.logical_and(cumulativeWidths <= D, cumulativeWidths != 0);
+            spotsThatFitMask = np.logical_and(cumulativeWidths <= D, cumulativeWidths != 0)
 
-            numThatFit = np.sum(spotsThatFitMask);
+            numThatFit = np.sum(spotsThatFitMask)
             
-            largestFit = np.max(cumulativeWidths[spotsThatFitMask]);
+            largestFit = np.max(cumulativeWidths[spotsThatFitMask])
 
-            cumulativeWidths = cumulativeWidths - largestFit; 
+            cumulativeWidths = cumulativeWidths - largestFit 
 
-            cumulativeWidths[cumulativeWidths < 0] = 0; 
+            cumulativeWidths[cumulativeWidths < 0] = 0 
 
-            processedIndvs = processedIndvs + numThatFit;
+            processedIndvs = processedIndvs + numThatFit
 
-            spotsThatFit = np.where(spotsThatFitMask)[0];
+            spotsThatFit = np.where(spotsThatFitMask)[0]
 
-            cycles[cycle_count, 0:numThatFit] = spotsThatFit; 
+            cycles[cycle_count, 0:numThatFit] = spotsThatFit 
 
-            cycle_count = cycle_count + 1;
+            cycle_count = cycle_count + 1
 
         ## Create density mask
 
         # Mask out non-zero values cycle-by-cycle
-        currentIndv = 0;
+        currentIndv = 0
 
         for c in range(cycle_count):
 
-            cycle = cycles[c, cycles[c, :] != -1];
+            cycle = cycles[c, cycles[c, :] != -1]
             
-            widths = widthVector[cycle];
+            widths = widthVector[cycle]
 
-            gapToFill = D - np.sum(widths);
+            gapToFill = D - np.sum(widths)
 
-            gapSize = np.ceil((D - np.sum(widths))/np.size(widths)).astype(int);
+            gapSize = np.ceil((D - np.sum(widths))/np.size(widths)).astype(int)
 
-            position = 0;
+            position = 0
 
             for width in widths: 
 
                 # Determine if a gap is needed
-                gapWidth = 0;
+                gapWidth = 0
                 if gapToFill > 0:
-                    gapWidth = gapSize;
-                    gapToFill = gapToFill - gapWidth;
+                    gapWidth = gapSize
+                    gapToFill = gapToFill - gapWidth
                 
 
                 # Determine the position of the stripe
-                startPoint = position;
+                startPoint = position
 
                 # If we're in the final cycle of the striping, then switch from 
                 # filling in the extra gap to spacing the stripes out
                 if c == (cycle_count - 1):
-                    endPoint = position+width;
+                    endPoint = position+width
                 else:
-                    endPoint = position+width+gapWidth;
+                    endPoint = position+width+gapWidth
 
                 # Prevent overflow from a gap calculation
                 if endPoint > D:
-                    endPoint = D;
+                    endPoint = D
 
                 # Mask out stripe
-                mask[currentIndv, startPoint:endPoint] = True;
+                mask[currentIndv, startPoint:endPoint] = True
 
                 # Go to the next individual
-                position = position + width + gapWidth; 
+                position = position + width + gapWidth 
 
-                currentIndv = currentIndv + 1;
+                currentIndv = currentIndv + 1
 
         # Zero out the necessary spots
-        X[np.logical_not(mask)] = 0;
+        X[np.logical_not(mask)] = 0
 
         return X
 
@@ -315,7 +315,7 @@ if __name__ == "__main__":
     sampler = VSSPS()
     dummy_prob = get_problem("zdt1", n_var= 100)
    
-    n_samples = 100;
+    n_samples = 100
 
     X = sampler._do(dummy_prob, n_samples, FloatRandomSampling)
 
