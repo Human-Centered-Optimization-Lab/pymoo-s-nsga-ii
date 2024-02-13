@@ -8,6 +8,8 @@ from pymoo.operators.selection.rnd import RandomSelection
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from pymoo.util.normalization import get_extreme_points_c
 
+import matplotlib.pyplot as plt
+
 # =========================================================================================================
 # Implementation
 # =========================================================================================================
@@ -164,7 +166,7 @@ class RankAndModifiedCrowdingSurvival(Survival):
 
 class VSSPS(Sampling):
 
-    def __init__(self, sparsity_range = (0.75, 1)): 
+    def __init__(self, sparsity_range = (0.50, 1)): 
 
         self.s_lower = sparsity_range[0]
         self.s_upper = sparsity_range[1]
@@ -306,6 +308,23 @@ class VSSPS(Sampling):
     #       |
     #       Cyle length of 6
 
+if __name__ == "__main__": 
+
+    sampler = VSSPS()
+    dummy_prob = type('obj', (object,), {'n_var' : 100})
+    n_samples = 100
+
+    X = sampler._do(dummy_prob, n_samples)
+
+    masked_X = X
+    masked_X[masked_X != 0] = 1
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(X)
+
+
+
+    plt.show()
 
 
 
