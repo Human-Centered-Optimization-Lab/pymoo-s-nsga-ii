@@ -180,6 +180,7 @@ class VSSPS(Sampling):
             X[i, :] = np.random.permutation(problem.n_var)
 
         N = X.shape[0]
+        D = X.shape[1]
 
         # non-zero mask
         mask = np.array(np.zeros(np.shape(X)), dtype = bool)
@@ -187,6 +188,96 @@ class VSSPS(Sampling):
         ## Determine the positioning of each stripe per individual
         densityVector = 1 - np.linspace(self.s_lower, self.s_upper, N);
 
+        widthVector = np.round(np.multiply(densityVector, D)).astype(int);
+
+
+        # Put widths back into bound if rounding error occurred
+        lb = np.floor((1- self.s_lower)*D);
+        widthVector[widthVector > lb] = lb;
+
+        cumulativeWidths = np.cumsum(widthVector);
+        
+        # if all sparsities are 100%, then skip processing, since everything
+        # will be zeros 
+        if np.sum(widthVector == 0) == N:
+            processedIndvs = N; 
+        else:
+            processedIndvs = 0;
+
+        cycle_count = 0;
+        cycles = np.ones((N, D), dtype=int) * -1;
+
+        while processedIndvs < N:
+
+            # Figure out how many stripes will fit in this cycle 
+            spotsThatFitMask = np.logical_and(cumulativeWidths <= D, cumulativeWidths != 0);
+
+            numThatFit = np.sum(spotsThatFitMask);
+            
+            largestFit = np.max(cumulativeWidths[spotsThatFitMask]);
+
+            cumulativeWidths = cumulativeWidths - largestFit; 
+
+            cumulativeWidths[cumulativeWidths < 0] = 0; 
+
+            processedIndvs = processedIndvs + numThatFit;
+
+            spotsThatFit = np.where(spotsThatFitMask)[0];
+
+            cycles[cycle_count, 0:numThatFit] = spotsThatFit; 
+
+            cycle_count = cycle_count + 1;
+
+        ## Create density mask
+
+
+        # Mask out non-zero values cycle-by-cycle
+        currentIndv = 0;
+
+        for c in range(cycle_count):
+
+            cycle = cycles[c, cycles[c, :] != -1];
+            
+            widths = widthVector[cycle];
+
+            gapToFill = D - np.sum(widths);
+
+            gapSize = np.ceil((D - np.sum(widths))/np.size(widths)).astype(int);
+
+            position = 0;
+
+            for width in widths: 
+
+                # Determine if a gap is needed
+                gapWidth = 0;
+                if gapToFill > 0:
+                    gapWidth = gapSize;
+                    gapToFill = gapToFill - gapWidth;
+                
+
+                # Determine the position of the stripe
+                startPoint = position;
+
+                if c == cycle_count:
+                    endPoint = position+width-1;
+                else:
+                    endPoint = position+width-1+gapWidth;
+                
+
+                # Prevent overflow from a gap calculation
+                if endPoint > D:
+                    endPoint = D;
+                
+                # Mask out stripe
+                mask[currentIndv, startPoint:endPoint] = True;
+
+                # Go to the next individual
+                position = position+width+gapWidth;
+
+                currentIndv = currentIndv + 1;
+
+        # Zero out the necessary spots
+        X[np.logical_not(mask)] = 0;
 
         return X
 
@@ -215,11 +306,6 @@ class VSSPS(Sampling):
     #       |
     #       Cyle length of 6
 
-
-if __name__ == "__main__": 
-
-
-    print("howdy folks")
 
 
 

@@ -6,7 +6,7 @@ import numpy as np
 
 test_striping_io = [
     # prob, n_samples
-    (type('obj', (object,), {'n_var' : 50}), 100)
+    (type('obj', (object,), {'n_var' : 100}), 100)
         ]
 
 @pytest.mark.parametrize('prob, n_samples', test_striping_io)
