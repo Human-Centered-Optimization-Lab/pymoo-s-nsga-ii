@@ -261,7 +261,9 @@ class VSSPS(Sampling):
                 # Determine the position of the stripe
                 startPoint = position;
 
-                if c == cycle_count:
+                # If we're in the final cycle of the striping, then switch from 
+                # filling in the extra gap to spacing the stripes out
+                if c == (cycle_count - 1):
                     endPoint = position+width;
                 else:
                     endPoint = position+width+gapWidth;
@@ -274,13 +276,12 @@ class VSSPS(Sampling):
                 mask[currentIndv, startPoint:endPoint] = True;
 
                 # Go to the next individual
-                position = endPoint;
+                position = position + width + gapWidth; 
 
                 currentIndv = currentIndv + 1;
 
         # Zero out the necessary spots
         X[np.logical_not(mask)] = 0;
-
 
         return X
 
