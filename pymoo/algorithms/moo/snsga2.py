@@ -33,12 +33,13 @@ class SNSGA2(NSGA2):
 
 class VSSPS(Sampling):
 
-    def __init__(self, base_sampler_class, sparsity_range = (0.75, 1), **kwargs): 
+    def __init__(self, base_sampler_class, sparsity_range = (0.75, 1), nz_indices=[],  **kwargs): 
 
-        self.s_lower = sparsity_range[0]
-        self.s_upper = sparsity_range[1]
+        self.s_lower            = sparsity_range[0]
+        self.s_upper            = sparsity_range[1]
         self.base_sampler_class = base_sampler_class 
-        
+        self.nz_indices        = nz_indices  
+
         super().__init__(**kwargs)
 
 
@@ -147,6 +148,9 @@ class VSSPS(Sampling):
 
                 currentIndv = currentIndv + 1
 
+        # Record the indices that should be non-zero in the mask 
+        mask[:, self.nz_indices] = True;
+
         # Zero out the necessary spots
         X[np.logical_not(mask)] = 0
 
@@ -180,23 +184,23 @@ class VSSPS(Sampling):
 if __name__ == "__main__": 
 
     # Algorithm smoke test 
-    sampler = VSSPS(FloatRandomSampling)
+    sampler = VSSPS(FloatRandomSampling, nz_indices=[0, 5])
 
     prob = get_problem("zdt1", n_var= 100)
 
-    algorithm = NSGA2(sampling=sampler, pop_size=100)
-    
-    res = minimize(prob,
-                   algorithm,
-                   ('n_gen', 200),
-                   seed=1,
-                   verbose=False)
+    #algorithm = NSGA2(sampling=sampler, pop_size=100)
+    #
+    #res = minimize(prob,
+    #               algorithm,
+    #               ('n_gen', 200),
+    #               seed=1,
+    #               verbose=False)
 
 
-    plot = Scatter()
-    plot.add(prob.pareto_front(), plot_type="line", color="black", alpha=0.7)
-    plot.add(res.F, facecolor="none", edgecolor="red")
-    plot.show()
+    #plot = Scatter()
+    #plot.add(prob.pareto_front(), plot_type="line", color="black", alpha=0.7)
+    #plot.add(res.F, facecolor="none", edgecolor="red")
+    #plot.show()
 
 
     # Visual representation of the sampling
